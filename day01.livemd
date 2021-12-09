@@ -4,14 +4,14 @@
 
 ```elixir
 Mix.install([
-  {:kino, "~> 0.4.0"}
+  {:kino, "~> 0.4.1"}
 ])
 ```
 
 ## Intro
 
 ```elixir
-input = Kino.Input.textarea("Please paste your input file:")
+input = Kino.Input.textarea("Please paste your input:")
 ```
 
 ## Part 1
