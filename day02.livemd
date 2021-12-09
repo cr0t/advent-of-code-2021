@@ -33,3 +33,23 @@ input = Kino.Input.textarea("Please paste your input:")
 
 depth * horizontal
 ```
+
+## Part 2
+
+```elixir
+{depth, horizontal, _aim} =
+  input
+  |> Kino.Input.read()
+  |> String.splitter("\n", trim: true)
+  |> Stream.map(fn line ->
+    [command, value] = String.split(line)
+    {command, String.to_integer(value)}
+  end)
+  |> Enum.reduce({0, 0, 0}, fn
+    {"down", v}, {d, h, a} -> {d, h, a + v}
+    {"up", v}, {d, h, a} -> {d, h, a - v}
+    {"forward", v}, {d, h, a} -> {d + v * a, h + v, a}
+  end)
+
+depth * horizontal
+```
