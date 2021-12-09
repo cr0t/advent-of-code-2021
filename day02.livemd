@@ -1,0 +1,35 @@
+# Day 2
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+## Intro
+
+```elixir
+input = Kino.Input.textarea("Please paste your input:")
+```
+
+## Part 1
+
+```elixir
+{depth, horizontal} =
+  input
+  |> Kino.Input.read()
+  |> String.splitter("\n", trim: true)
+  |> Stream.map(fn line ->
+    [command, value] = String.split(line)
+    {command, String.to_integer(value)}
+  end)
+  |> Enum.reduce({0, 0}, fn
+    {"forward", v}, {depth, horizontal} -> {depth, horizontal + v}
+    {"down", v}, {depth, horizontal} -> {depth + v, horizontal}
+    {"up", v}, {depth, horizontal} -> {depth - v, horizontal}
+  end)
+
+depth * horizontal
+```
