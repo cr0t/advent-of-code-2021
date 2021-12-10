@@ -1,0 +1,73 @@
+# Day 3
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+## Intro
+
+```elixir
+input = Kino.Input.textarea("Please paste your input:")
+```
+
+## Part 1
+
+After initial parsing we get list of lists, like this:
+
+```
+[
+  ["0", "1", "0"],
+  ["1", "1", "1"],
+  ["0", "0", "1"],
+  # ...
+]
+```
+
+We want to transpose the given matrix to count numbers of 0s and 1s in
+each bit position.
+
+To transpose we can use this code:
+
+```
+matrix
+|> List.zip()
+|> Enum.map(&Tuple.to_list/1)
+```
+
+Or (starting Elixir 1.12), simply:
+
+```
+matrix
+|> Enum.zip_with(& &1)
+```
+
+```elixir
+gamma_l =
+  input
+  |> Kino.Input.read()
+  |> String.splitter("\n", trim: true)
+  |> Enum.map(&String.split(&1, "", trim: true))
+  |> Enum.zip_with(& &1)
+  |> Enum.map(&Enum.frequencies/1)
+  |> Enum.reduce([], fn
+    %{"0" => zero, "1" => one}, acc when zero > one -> ["0" | acc]
+    _, acc -> ["1" | acc]
+  end)
+  |> Enum.reverse()
+
+epsilon_l =
+  gamma_l
+  |> Enum.map(fn
+    "0" -> "1"
+    "1" -> "0"
+  end)
+
+gamma = Enum.join(gamma_l) |> String.to_integer(2)
+epsilon = Enum.join(epsilon_l) |> String.to_integer(2)
+
+gamma * epsilon
+```
