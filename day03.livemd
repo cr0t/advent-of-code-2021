@@ -71,3 +71,51 @@ epsilon = Enum.join(epsilon_l) |> String.to_integer(2)
 
 gamma * epsilon
 ```
+
+## Part 2
+
+```elixir
+defmodule Day2Part2Solution do
+  def solve(input) do
+    numbers = parse(input)
+
+    oxy_rating(numbers) * co2_rating(numbers)
+  end
+
+  defp parse(input) do
+    input
+    |> String.splitter("\n", trim: true)
+    |> Enum.map(&(String.split(&1, "", trim: true) |> List.to_tuple()))
+  end
+
+  defp oxy_rating(numbers) do
+    reduce_numbers(numbers, 0, fn zeros, ones ->
+      if ones >= zeros, do: "1", else: "0"
+    end)
+  end
+
+  defp co2_rating(numbers) do
+    reduce_numbers(numbers, 0, fn zeros, ones ->
+      if zeros <= ones, do: "0", else: "1"
+    end)
+  end
+
+  defp reduce_numbers([number], _, _),
+    do: number |> Tuple.to_list() |> Enum.join() |> String.to_integer(2)
+
+  defp reduce_numbers(numbers, index, operation_fun) do
+    zeros_count = Enum.count(numbers, &(elem(&1, index) == "0"))
+    ones_count = length(numbers) - zeros_count
+
+    keep_el = operation_fun.(zeros_count, ones_count)
+
+    numbers = Enum.filter(numbers, &(elem(&1, index) == keep_el))
+
+    reduce_numbers(numbers, index + 1, operation_fun)
+  end
+end
+
+input
+|> Kino.Input.read()
+|> Day2Part2Solution.solve()
+```
