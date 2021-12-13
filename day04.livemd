@@ -1,0 +1,127 @@
+# Day 4
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+## Input
+
+```elixir
+input = Kino.Input.textarea("Please paste your input:")
+```
+
+## Part 1
+
+```elixir
+defmodule Day4Part1Solution do
+  def solve(input) do
+    {numbers, boards} = parse(input)
+
+    {win_number, win_board} =
+      numbers
+      |> Enum.reduce_while(boards, fn number, boards ->
+        boards = play_round(boards, number)
+        winner_board = find_winner(boards)
+
+        if winner_board do
+          {:halt, {number, winner_board}}
+        else
+          {:cont, boards}
+        end
+      end)
+
+    win_number * sum_unmarked(win_board)
+  end
+
+  defp parse(input) do
+    [raw_numbers | raw_boards] = String.split(input, "\n\n", trim: true)
+
+    {
+      parse_numbers(raw_numbers),
+      parse_boards(raw_boards)
+    }
+  end
+
+  defp parse_numbers(raw_numbers) do
+    raw_numbers
+    |> String.split(",")
+    |> Enum.map(&String.to_integer/1)
+  end
+
+  defp parse_boards(raw_boards) do
+    raw_boards
+    |> Enum.map(fn board ->
+      board
+      |> String.split("\n", trim: true)
+      |> Enum.map(fn row ->
+        row
+        |> String.split(~r/\s+/, trim: true)
+        |> Enum.map(fn n -> {String.to_integer(n), nil} end)
+      end)
+    end)
+  end
+
+  defp find_winner(boards) do
+    Enum.find(boards, fn board ->
+      any_row_complete?(board) or any_column_complete?(board)
+    end)
+  end
+
+  defp any_row_complete?(board) do
+    Enum.any?(board, fn rows ->
+      Enum.all?(rows, fn
+        {_, :marked} -> true
+        _ -> false
+      end)
+    end)
+  end
+
+  defp any_column_complete?(board) do
+    # we can transpose board's matrix and re-use any_row_complete?() check
+    board
+    |> Enum.zip_with(& &1)
+    |> any_row_complete?()
+  end
+
+  defp play_round(boards, number) do
+    boards
+    |> Enum.map(&mark_board(&1, number))
+  end
+
+  defp mark_board(board, number) do
+    board
+    |> Enum.map(&mark_row(&1, number))
+  end
+
+  defp mark_row(row, number) do
+    row
+    |> Enum.map(fn
+      {^number, _} -> {number, :marked}
+      any -> any
+    end)
+  end
+
+  defp sum_unmarked(board) do
+    board
+    |> Enum.map(fn rows ->
+      rows
+      |> Enum.map(fn
+        {_, :marked} -> 0
+        {n, nil} -> n
+      end)
+    end)
+    |> List.flatten()
+    |> Enum.sum()
+  end
+end
+
+### Execute solution
+
+input
+|> Kino.Input.read()
+|> Day4Part1Solution.solve()
+```
