@@ -1,0 +1,69 @@
+# Day 5
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+## Intro
+
+```elixir
+input = Kino.Input.textarea("Please paste your input:")
+```
+
+## Parsing/Shared
+
+```elixir
+defmodule Day5Shared do
+  def parse(input) do
+    input
+    |> String.split("\n", trim: true)
+    |> Enum.map(&String.split(&1, " -> ", trim: true))
+    |> Enum.map(fn [left, right] ->
+      [x1, y1] =
+        left
+        |> String.split(",")
+        |> Enum.map(&String.to_integer/1)
+
+      [x2, y2] =
+        right
+        |> String.split(",")
+        |> Enum.map(&String.to_integer/1)
+
+      {x1, y1, x2, y2}
+    end)
+  end
+end
+
+parsed_input =
+  input
+  |> Kino.Input.read()
+  |> Day5Shared.parse()
+```
+
+## Part 1
+
+```elixir
+parsed_input
+# filter only vertical or horizontal lines (x1 == x2 or y1 == y2)
+|> Enum.filter(fn
+  {x, _, x, _} -> true
+  {_, y, _, y} -> true
+  _ -> false
+end)
+# comprehend ranges and list all points covered by lines segments
+|> Enum.map(fn {x1, y1, x2, y2} ->
+  for x <- x1..x2, y <- y1..y2 do
+    {x, y}
+  end
+end)
+|> List.flatten()
+# find how many of the same coordinates covered by lines
+|> Enum.frequencies()
+|> Map.values()
+# the number of points where at least two lines overlap
+|> Enum.count(&(&1 >= 2))
+```
