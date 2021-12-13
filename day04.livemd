@@ -14,30 +14,11 @@ Mix.install([
 input = Kino.Input.textarea("Please paste your input:")
 ```
 
-## Part 1
+## Parsing/Shared
 
 ```elixir
-defmodule Day4Part1Solution do
-  def solve(input) do
-    {numbers, boards} = parse(input)
-
-    {win_number, win_board} =
-      numbers
-      |> Enum.reduce_while(boards, fn number, boards ->
-        boards = play_round(boards, number)
-        winner_board = find_winner(boards)
-
-        if winner_board do
-          {:halt, {number, winner_board}}
-        else
-          {:cont, boards}
-        end
-      end)
-
-    win_number * sum_unmarked(win_board)
-  end
-
-  defp parse(input) do
+defmodule Day4Shared do
+  def parse(input) do
     [raw_numbers | raw_boards] = String.split(input, "\n\n", trim: true)
 
     {
@@ -65,8 +46,14 @@ defmodule Day4Part1Solution do
     end)
   end
 
-  defp find_winner(boards) do
+  def find_winner(boards) do
     Enum.find(boards, fn board ->
+      any_row_complete?(board) or any_column_complete?(board)
+    end)
+  end
+
+  def find_all_winners(boards) do
+    Enum.filter(boards, fn board ->
       any_row_complete?(board) or any_column_complete?(board)
     end)
   end
@@ -87,7 +74,7 @@ defmodule Day4Part1Solution do
     |> any_row_complete?()
   end
 
-  defp play_round(boards, number) do
+  def play_round(boards, number) do
     boards
     |> Enum.map(&mark_board(&1, number))
   end
@@ -105,7 +92,7 @@ defmodule Day4Part1Solution do
     end)
   end
 
-  defp sum_unmarked(board) do
+  def sum_unmarked(board) do
     board
     |> Enum.map(fn rows ->
       rows
@@ -118,10 +105,85 @@ defmodule Day4Part1Solution do
     |> Enum.sum()
   end
 end
+```
+
+## Part 1
+
+```elixir
+defmodule Day4Part1Solution do
+  def solve(input) do
+    {numbers, boards} = Day4Shared.parse(input)
+
+    {win_number, win_board} =
+      numbers
+      |> Enum.reduce_while(boards, fn number, boards ->
+        boards = Day4Shared.play_round(boards, number)
+        winner_board = Day4Shared.find_winner(boards)
+
+        if winner_board do
+          {:halt, {number, winner_board}}
+        else
+          {:cont, boards}
+        end
+      end)
+
+    win_number * Day4Shared.sum_unmarked(win_board)
+  end
+end
 
 ### Execute solution
 
 input
 |> Kino.Input.read()
 |> Day4Part1Solution.solve()
+```
+
+## Part 2
+
+```elixir
+defmodule Day4Part2Solution do
+  def solve(input) do
+    {numbers, boards} = Day4Shared.parse(input)
+
+    {rounds_results, _} =
+      numbers
+      |> Enum.reduce({[], boards}, &find_winners/2)
+
+    # we have to find the first non-empty winners list and the winning number
+    # in the list of results
+    {last_win_number, last_win_board} =
+      rounds_results
+      |> Enum.reduce_while({}, fn
+        {_, []}, _ -> {:cont, {nil, nil}}
+        {num, [board]}, _ -> {:halt, {num, board}}
+      end)
+
+    last_win_number * Day4Shared.sum_unmarked(last_win_board)
+  end
+
+  defp find_winners(number, {winners, boards}) do
+    boards = Day4Shared.play_round(boards, number)
+    # there might be a few winners in a round (especially in later rounds)
+    winner_boards = Day4Shared.find_all_winners(boards)
+
+    if winner_boards do
+      winners = [{number, winner_boards} | winners]
+
+      boards =
+        Enum.reject(boards, fn board ->
+          Enum.any?(winner_boards, &(&1 == board))
+        end)
+
+      {winners, boards}
+    else
+      {winners, boards}
+    end
+  end
+end
+
+### Execute solution
+
+input
+|> Kino.Input.read()
+|> Day4Part2Solution.solve()
 ```
