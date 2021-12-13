@@ -75,7 +75,7 @@ gamma * epsilon
 ## Part 2
 
 ```elixir
-defmodule Day2Part2Solution do
+defmodule Day3Part2Solution do
   def solve(input) do
     numbers = parse(input)
 
