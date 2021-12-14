@@ -25,15 +25,30 @@ defmodule Day6Shared do
     |> Enum.map(&String.to_integer/1)
   end
 
-  def day_cycle(_day, fishes) do
-    Enum.reduce(fishes, [], fn
-      0, fishes -> [8, 6 | fishes]
-      fish, fishes -> [fish - 1 | fishes]
-    end)
+  def day_cycle(_day, %{
+        0 => z,
+        1 => o,
+        2 => tw,
+        3 => thr,
+        4 => fr,
+        5 => fv,
+        6 => six,
+        7 => sev,
+        8 => e
+      }) do
+    %{
+      0 => o,
+      1 => tw,
+      2 => thr,
+      3 => fr,
+      4 => fv,
+      5 => six,
+      6 => sev + z,
+      7 => e,
+      8 => z
+    }
   end
 end
-
-# Day6Shared.parse(input)
 ```
 
 ## Part 1
@@ -43,13 +58,80 @@ end
 ```elixir
 defmodule Day6Part1Solution do
   def solve(initial_fishes) do
+    fish_ages =
+      %{0 => 0, 1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0, 6 => 0, 7 => 0, 8 => 0}
+      |> Map.merge(Enum.frequencies(initial_fishes))
+
     1..80
-    |> Enum.reduce(initial_fishes, &Day6Shared.day_cycle/2)
-    |> Enum.count()
+    |> Enum.reduce(fish_ages, &Day6Shared.day_cycle/2)
+    |> Enum.reduce(0, fn {_, v}, acc -> acc + v end)
   end
 end
 
 input
 |> Day6Shared.parse()
 |> Day6Part1Solution.solve()
+```
+
+## Part 2: Immortal Fish!
+
+The first (brute-force) attempt – you can find it in the previous commit – was using simple
+Lists to store all the fishes "ages". Every day (every cycle), old algorithm was going over
+every item in the list, decreasing it by 1, and adding new generations in case it finds `0`s.
+
+For 80 cycles it worked fine, and takes less than a second to calculate all the springs and
+all the fishes in the end.
+
+For 256 cycles... It took more that 20GB of RAM, and I stopped it after 3 minutes of calculating.
+
+I scratched my head, and refactored the main algorithm that counts fishes generations each cycle.
+I decided to change data-structure to store information about fishes' ages: from List to Map.
+
+So, instead of storing them like List:
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+[3,4,3,1,2]
+```
+
+I put all ages in the Map:
+
+<!-- livebook:{"force_markdown":true} -->
+
+```elixir
+%{
+  0 => 0,
+  1 => 1, # one fish in 1 day to give birth
+  2 => 1, # one fish in 2 days to give birth
+  3 => 2, # two fishes in 3 days to give birth
+  4 => 1, # one fish in 4 days to give birth
+  5 => 0,
+  6 => 0,
+  7 => 0,
+  8 => 0
+}
+```
+
+In the implemenation of `Day6Shared.day_cycle/2` you can see that we're just shifting ages by 1,
+and adding new springs at age of 6.
+
+This approach took 13ms for 256 days, and almost no RAM while computing.
+
+```elixir
+defmodule Day6Part2Solution do
+  def solve(initial_fishes) do
+    fish_ages =
+      %{0 => 0, 1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0, 6 => 0, 7 => 0, 8 => 0}
+      |> Map.merge(Enum.frequencies(initial_fishes))
+
+    1..256
+    |> Enum.reduce(fish_ages, &Day6Shared.day_cycle/2)
+    |> Enum.reduce(0, fn {_, v}, acc -> acc + v end)
+  end
+end
+
+input
+|> Day6Shared.parse()
+|> Day6Part2Solution.solve()
 ```
