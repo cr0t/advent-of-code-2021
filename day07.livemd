@@ -47,3 +47,54 @@ positions
 end)
 |> Enum.min_by(fn {_, v} -> v end)
 ```
+
+## Part 2
+
+Here is the way how we calculate fuel costs for moving by number of positions:
+
+```
+position => fuel cost
+--------------------
+1 => 1
+2 => 3
+3 => 6
+4 => 10
+5 => 15
+6 => 21
+7 => 28
+8 => 36
+9 => 45
+10 => 55
+11 => 66
+...
+```
+
+It's basically a sum of all previous steps:
+
+* 3 steps – 3 + 2 + 1 = 6
+* 7 steps – 7 + 6 + 5 + 4 + 3 + 2 + 1 = 28
+* 8 steps – 8 + 7 + 6 + 5 + 4 + 3 + 2 + 1 = 36
+* etc.
+
+```elixir
+positions =
+  input
+  |> Day7Shared.parse()
+
+max_position = Enum.max(positions)
+
+0..max_position
+|> Enum.reduce(%{}, fn to_position, costs ->
+  total_cost =
+    positions
+    |> Enum.reduce(0, fn current_position, fuel_cost ->
+      steps = abs(current_position - to_position)
+      cost = if steps > 0, do: Enum.sum(1..steps), else: 0
+
+      fuel_cost + cost
+    end)
+
+  Map.put(costs, to_position, total_cost)
+end)
+|> Enum.min_by(fn {_, v} -> v end)
+```
