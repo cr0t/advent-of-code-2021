@@ -1,0 +1,49 @@
+# Day 7
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+## Intro
+
+```elixir
+input = Kino.Input.textarea("Please paste your input:")
+```
+
+## Parsing/Shared
+
+```elixir
+defmodule Day7Shared do
+  def parse(input) do
+    input
+    |> Kino.Input.read()
+    |> String.split(",")
+    |> Enum.map(&String.to_integer/1)
+  end
+end
+```
+
+## Part 1
+
+```elixir
+positions =
+  input
+  |> Day7Shared.parse()
+
+positions
+|> Enum.uniq()
+|> Enum.reduce(%{}, fn to_position, costs ->
+  total_cost =
+    positions
+    |> Enum.reduce(0, fn current_position, fuel_cost ->
+      fuel_cost + abs(current_position - to_position)
+    end)
+
+  Map.put(costs, to_position, total_cost)
+end)
+|> Enum.min_by(fn {_, v} -> v end)
+```
