@@ -1,0 +1,55 @@
+# Day 6
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+## Intro
+
+```elixir
+input = Kino.Input.textarea("Please paste your input:")
+```
+
+## Parsing/Shared
+
+```elixir
+defmodule Day6Shared do
+  def parse(input) do
+    input
+    |> Kino.Input.read()
+    |> String.split(",")
+    |> Enum.map(&String.to_integer/1)
+  end
+
+  def day_cycle(_day, fishes) do
+    Enum.reduce(fishes, [], fn
+      0, fishes -> [8, 6 | fishes]
+      fish, fishes -> [fish - 1 | fishes]
+    end)
+  end
+end
+
+# Day6Shared.parse(input)
+```
+
+## Part 1
+
+<!-- livebook:{"reevaluate_automatically":true} -->
+
+```elixir
+defmodule Day6Part1Solution do
+  def solve(initial_fishes) do
+    1..80
+    |> Enum.reduce(initial_fishes, &Day6Shared.day_cycle/2)
+    |> Enum.count()
+  end
+end
+
+input
+|> Day6Shared.parse()
+|> Day6Part1Solution.solve()
+```
