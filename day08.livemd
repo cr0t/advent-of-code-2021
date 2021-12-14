@@ -1,0 +1,58 @@
+# Day 8
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+## Intro
+
+```elixir
+input = Kino.Input.textarea("Please paste your input:")
+```
+
+## Parsing/Shared
+
+```elixir
+defmodule Day8Shared do
+  def parse(input) do
+    input
+    |> Kino.Input.read()
+    |> String.split("\n", trim: true)
+    |> Enum.map(fn line ->
+      line
+      |> String.split(" | ")
+      |> Enum.map(&String.split(&1, " "))
+      |> List.to_tuple()
+    end)
+  end
+end
+```
+
+## Part 1
+
+```elixir
+defmodule Day8Part1Solution do
+  def solve(input) do
+    input
+    |> Enum.map(&elem(&1, 1))
+    |> Enum.map(&find_easy_digits/1)
+    |> List.flatten()
+    |> Enum.count()
+  end
+
+  defp find_easy_digits(signals) do
+    Enum.filter(signals, fn s ->
+      len = String.length(s)
+      len == 2 or len == 3 or len == 4 or len == 7
+    end)
+  end
+end
+
+input
+|> Day8Shared.parse()
+|> Day8Part1Solution.solve()
+```
