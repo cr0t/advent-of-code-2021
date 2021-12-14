@@ -67,3 +67,54 @@ end)
 # the number of points where at least two lines overlap
 |> Enum.count(&(&1 >= 2))
 ```
+
+## Part 2
+
+```elixir
+defmodule Day5Part2Solution do
+  def solve(input) do
+    input
+    # comprehend ranges and list all points covered by lines segments
+    |> Enum.map(&find_all_points/1)
+    |> List.flatten()
+    # find how many of the same coordinates covered by lines
+    |> Enum.frequencies()
+    |> Map.values()
+    # the number of points where at least two lines overlap
+    |> Enum.count(&(&1 >= 2))
+  end
+
+  defp find_all_points({xS, y1, xS, y2}),
+    do: for(x <- xS..xS, y <- y1..y2, do: {x, y})
+
+  defp find_all_points({x1, yS, x2, yS}),
+    do: for(x <- x1..x2, y <- yS..yS, do: {x, y})
+
+  defp find_all_points({x1, y1, x2, y2}) do
+    slope_steps = abs(x1 - x2)
+
+    1..slope_steps
+    |> Enum.reduce({[{x1, y1}], {x2, y2}}, fn _, {[{x1, y1} | _] = points, {x2, y2}} ->
+      point = next_point({x1, y1}, {x2, y2})
+
+      {[point | points], {x2, y2}}
+    end)
+    |> elem(0)
+  end
+
+  defp next_point({x1, y1}, {x2, y2}) when x1 < x2 and y1 < y2,
+    do: {x1 + 1, y1 + 1}
+
+  defp next_point({x1, y1}, {x2, y2}) when x1 > x2 and y1 < y2,
+    do: {x1 - 1, y1 + 1}
+
+  defp next_point({x1, y1}, {x2, y2}) when x1 < x2 and y1 > y2,
+    do: {x1 + 1, y1 - 1}
+
+  defp next_point({x1, y1}, {x2, y2}) when x1 > x2 and y1 > y2,
+    do: {x1 - 1, y1 - 1}
+end
+
+parsed_input
+|> Day5Part2Solution.solve()
+```
