@@ -25,9 +25,24 @@ defmodule Day8Shared do
     |> Enum.map(fn line ->
       line
       |> String.split(" | ")
-      |> Enum.map(&String.split(&1, " "))
+      |> Enum.map(fn signals ->
+        signals
+        |> String.split(" ")
+        |> Enum.map(&String.split(&1, "", trim: true))
+      end)
       |> List.to_tuple()
     end)
+  end
+
+  def filter_easy_digits(signals) do
+    Enum.filter(signals, fn s ->
+      l = length(s)
+      l == 2 or l == 3 or l == 4 or l == 7
+    end)
+  end
+
+  def filter_by_length(signals, len) do
+    Enum.filter(signals, &(length(&1) == len))
   end
 end
 ```
@@ -39,20 +54,141 @@ defmodule Day8Part1Solution do
   def solve(input) do
     input
     |> Enum.map(&elem(&1, 1))
-    |> Enum.map(&find_easy_digits/1)
-    |> List.flatten()
-    |> Enum.count()
-  end
-
-  defp find_easy_digits(signals) do
-    Enum.filter(signals, fn s ->
-      len = String.length(s)
-      len == 2 or len == 3 or len == 4 or len == 7
-    end)
+    |> Enum.map(&Day8Shared.filter_easy_digits/1)
+    |> Enum.map(&Enum.count/1)
+    |> Enum.sum()
   end
 end
 
 input
 |> Day8Shared.parse()
 |> Day8Part1Solution.solve()
+```
+
+## Part 2: Deduction
+
+```elixir
+defmodule Day8Part2Solution do
+  @original_digits %{
+    ~w[a b c e f g] => 0,
+    ~w[c f] => 1,
+    ~w[a c d e g] => 2,
+    ~w[a c d f g] => 3,
+    ~w[b c d f] => 4,
+    ~w[a b d f g] => 5,
+    ~w[a b d e f g] => 6,
+    ~w[a c f] => 7,
+    ~w[a b c d e f g] => 8,
+    ~w[a b c d f g] => 9
+  }
+
+  def solve(input) do
+    signal_patterns = Enum.map(input, &elem(&1, 0))
+
+    easy_digits = deduct_easy_digits(signal_patterns)
+
+    signal_maps =
+      signal_patterns
+      |> Enum.zip(easy_digits)
+      |> Enum.map(&deduct_pattern_map/1)
+
+    input
+    |> Enum.map(&elem(&1, 1))
+    |> Enum.zip(signal_maps)
+    |> Enum.map(&pattern_to_number/1)
+    |> Enum.sum()
+  end
+
+  defp deduct_easy_digits(patterns) do
+    patterns
+    |> Enum.map(&Day8Shared.filter_easy_digits/1)
+    |> Enum.map(fn signals ->
+      signals
+      |> Enum.reduce(%{}, fn s, digits ->
+        digit =
+          case length(s) do
+            2 -> 1
+            3 -> 7
+            4 -> 4
+            7 -> 8
+          end
+
+        Map.put(digits, digit, s)
+      end)
+    end)
+  end
+
+  defp deduct_pattern_map({patterns, easy}) do
+    # find signals patterns for 0, 6, or 9 (but we do not know which is which yet)
+    maybe_zero_six_nine = Day8Shared.filter_by_length(patterns, 6)
+
+    # by applying signal pattern of 8 to these patterns, we can find extra signal in each
+    extra_signals =
+      maybe_zero_six_nine
+      |> Enum.map(&(easy[8] -- &1))
+      |> List.flatten()
+
+    # out of these extra signals we can identify new top-right segment by comparing with
+    # already known signal pattern of 1
+    [new_f] = easy[1] -- extra_signals
+
+    # new bottom-right segment easily identifiable from pattern of 1 minus signal for top-right
+    [new_c] = easy[1] -- [new_f]
+
+    # similarly we can find signal for top segment
+    [new_a] = easy[7] -- easy[1]
+
+    # let's exclude 6 from (as we can surely tell which pattern is for it), and find 0 and 9
+    maybe_zero_nine = Enum.filter(maybe_zero_six_nine, &Enum.member?(&1, new_c))
+
+    # pattern of 4 plus top segment gives us a shape of almost 9 (without bottom segment)
+    nine_without_bottom_segment = [new_a | easy[4]]
+
+    # we will get two items, one with 1 segment, the other with 2 segments
+    extras_nine = Enum.map(maybe_zero_nine, &(&1 -- nine_without_bottom_segment))
+
+    # the item with 1 segment is the new bottom segment
+    [new_g] = Enum.find(extras_nine, &(length(&1) == 1))
+
+    # the other extra segment is the new bottom-left segment
+    [new_e] = Enum.find(extras_nine, &(length(&1) == 2)) -- [new_g]
+
+    # middle segment can be taken from six_zero_nine extras without six and nine extras
+    [new_d] = extra_signals -- [new_c, new_e]
+
+    # last segment is just not the one of the others
+    [new_b] = easy[8] -- [new_a, new_c, new_d, new_e, new_f, new_g]
+
+    # so, here is the mapping of current signals to original segments
+    %{
+      new_a => "a",
+      new_b => "b",
+      new_c => "c",
+      new_d => "d",
+      new_e => "e",
+      new_f => "f",
+      new_g => "g"
+    }
+  end
+
+  defp pattern_to_number({signals, signal_map}) do
+    signals
+    |> Enum.map(&pattern_to_digit(&1, signal_map))
+    |> Integer.undigits()
+  end
+
+  defp pattern_to_digit(signal, signal_map) do
+    # find the original segments for the digit
+    restored_segments = Enum.map(signal, &Map.get(signal_map, &1))
+
+    # search among original digits' patterns for the restored one
+    @original_digits
+    |> Enum.find(fn {k, _} -> length(k -- restored_segments) == 0 end)
+    |> elem(1)
+  end
+end
+
+input
+|> Day8Shared.parse()
+|> Day8Part2Solution.solve()
 ```
