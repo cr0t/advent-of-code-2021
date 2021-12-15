@@ -1,0 +1,112 @@
+# Day 9
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+## Intro
+
+```elixir
+input = Kino.Input.textarea("Please paste your input:")
+```
+
+## Parsing/Shared
+
+```elixir
+defmodule Day9Shared do
+  def parse(input) do
+    input
+    |> Kino.Input.read()
+    |> String.split("\n", trim: true)
+    |> Enum.map(fn line ->
+      line
+      |> String.split("", trim: true)
+      |> Enum.map(&String.to_integer/1)
+      |> List.to_tuple()
+    end)
+    |> List.to_tuple()
+  end
+
+  def get(map, {y, x}),
+    do: map |> elem(y) |> elem(x)
+
+  def length(map),
+    do: tuple_size(map)
+
+  def width(map),
+    do: tuple_size(elem(map, 0))
+
+  # corner: top left
+  def neighbors(map, {0, 0}),
+    do: [get(map, {0, 1}), get(map, {1, 0})]
+
+  # corner: top right
+  def neighbors(map, {0, x}) when x == tuple_size(elem(map, 0)) - 1,
+    do: [get(map, {1, x}), get(map, {0, x - 1})]
+
+  # corner: bottom left
+  def neighbors(map, {y, 0}) when y == tuple_size(map) - 1,
+    do: [get(map, {y - 1, 0}), get(map, {y, 1})]
+
+  # corner: bottom right
+  def neighbors(map, {y, x}) when y == tuple_size(map) - 1 and x == tuple_size(elem(map, 0)) - 1,
+    do: [get(map, {y - 1, x}), get(map, {y, x - 1})]
+
+  # edge: top
+  def neighbors(map, {0, x}),
+    do: [get(map, {0, x + 1}), get(map, {1, x}), get(map, {0, x - 1})]
+
+  # edge: right
+  def neighbors(map, {y, x}) when x == tuple_size(elem(map, 0)) - 1,
+    do: [get(map, {y - 1, x}), get(map, {y + 1, x}), get(map, {y, x - 1})]
+
+  # edge: bottom
+  def neighbors(map, {y, x}) when y == tuple_size(map) - 1,
+    do: [get(map, {y - 1, x}), get(map, {y, x + 1}), get(map, {y, x - 1})]
+
+  # edge: left
+  def neighbors(map, {y, 0}),
+    do: [get(map, {y + 1, 0}), get(map, {y, 1}), get(map, {y - 1, 0})]
+
+  # all others
+  def neighbors(map, {y, x}),
+    do: [get(map, {y - 1, x}), get(map, {y, x + 1}), get(map, {y + 1, x}), get(map, {y, x - 1})]
+end
+
+map = Day9Shared.parse(input)
+
+coord = {3, 2}
+
+{Day9Shared.get(map, coord), Day9Shared.neighbors(map, coord)}
+```
+
+## Part 1
+
+```elixir
+floor = Day9Shared.parse(input)
+ys = Day9Shared.length(map) - 1
+xs = Day9Shared.width(map) - 1
+
+0..ys
+|> Enum.map(fn y ->
+  0..xs
+  |> Enum.map(fn x ->
+    el = Day9Shared.get(floor, {y, x})
+
+    lowest? =
+      floor
+      |> Day9Shared.neighbors({y, x})
+      |> Enum.min()
+      |> Kernel.>(el)
+
+    lowest? and el
+  end)
+end)
+|> List.flatten()
+|> Enum.reject(&(&1 == false))
+|> Enum.reduce(0, fn n, acc -> acc + (n + 1) end)
+```
