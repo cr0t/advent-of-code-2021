@@ -1,0 +1,78 @@
+# Day 10
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+## Intro
+
+```elixir
+input = Kino.Input.textarea("Please paste your input:")
+```
+
+## Parsing/Shared
+
+```elixir
+defmodule Day10Shared do
+  def parse(input) do
+    input
+    |> Kino.Input.read()
+    |> String.split("\n", trim: true)
+    |> Enum.map(&String.codepoints/1)
+  end
+end
+
+Day10Shared.parse(input)
+```
+
+## Part 1
+
+```elixir
+defmodule Day10Part1Solution do
+  @counterparts %{
+    "(" => ")",
+    "[" => "]",
+    "{" => "}",
+    "<" => ">"
+  }
+
+  @openers Map.keys(@counterparts)
+
+  @points %{
+    ")" => 3,
+    "]" => 57,
+    "}" => 1197,
+    ">" => 25137
+  }
+
+  def solve(input) do
+    input
+    |> Enum.map(&corruptor(&1, []))
+    |> Enum.reject(&(&1 == nil))
+    |> Enum.map(&@points[&1])
+    |> Enum.sum()
+  end
+
+  defp corruptor([], []),
+    do: nil
+
+  defp corruptor([], _),
+    do: nil
+
+  defp corruptor([br | tail], stack) when br in @openers,
+    do: corruptor(tail, [@counterparts[br] | stack])
+
+  defp corruptor([br | tail], [br | t_stack]),
+    do: corruptor(tail, t_stack)
+
+  defp corruptor([illegal_br | _], [_correct_br | _]),
+    do: illegal_br
+end
+
+Day10Shared.parse(input)
+|> Day10Part1Solution.solve()
+```
