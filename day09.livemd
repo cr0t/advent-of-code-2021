@@ -41,40 +41,40 @@ defmodule Day9Shared do
     do: tuple_size(elem(map, 0))
 
   # corner: top left
-  def neighbors(map, {0, 0}),
-    do: [get(map, {0, 1}), get(map, {1, 0})]
+  def neighbors(_map, {0, 0}),
+    do: [{0, 1}, {1, 0}]
 
   # corner: top right
   def neighbors(map, {0, x}) when x == tuple_size(elem(map, 0)) - 1,
-    do: [get(map, {1, x}), get(map, {0, x - 1})]
+    do: [{1, x}, {0, x - 1}]
 
   # corner: bottom left
   def neighbors(map, {y, 0}) when y == tuple_size(map) - 1,
-    do: [get(map, {y - 1, 0}), get(map, {y, 1})]
+    do: [{y - 1, 0}, {y, 1}]
 
   # corner: bottom right
   def neighbors(map, {y, x}) when y == tuple_size(map) - 1 and x == tuple_size(elem(map, 0)) - 1,
-    do: [get(map, {y - 1, x}), get(map, {y, x - 1})]
+    do: [{y - 1, x}, {y, x - 1}]
 
   # edge: top
-  def neighbors(map, {0, x}),
-    do: [get(map, {0, x + 1}), get(map, {1, x}), get(map, {0, x - 1})]
+  def neighbors(_map, {0, x}),
+    do: [{0, x + 1}, {1, x}, {0, x - 1}]
 
   # edge: right
   def neighbors(map, {y, x}) when x == tuple_size(elem(map, 0)) - 1,
-    do: [get(map, {y - 1, x}), get(map, {y + 1, x}), get(map, {y, x - 1})]
+    do: [{y - 1, x}, {y + 1, x}, {y, x - 1}]
 
   # edge: bottom
   def neighbors(map, {y, x}) when y == tuple_size(map) - 1,
-    do: [get(map, {y - 1, x}), get(map, {y, x + 1}), get(map, {y, x - 1})]
+    do: [{y - 1, x}, {y, x + 1}, {y, x - 1}]
 
   # edge: left
-  def neighbors(map, {y, 0}),
-    do: [get(map, {y + 1, 0}), get(map, {y, 1}), get(map, {y - 1, 0})]
+  def neighbors(_map, {y, 0}),
+    do: [{y + 1, 0}, {y, 1}, {y - 1, 0}]
 
   # all others
-  def neighbors(map, {y, x}),
-    do: [get(map, {y - 1, x}), get(map, {y, x + 1}), get(map, {y + 1, x}), get(map, {y, x - 1})]
+  def neighbors(_map, {y, x}),
+    do: [{y - 1, x}, {y, x + 1}, {y + 1, x}, {y, x - 1}]
 end
 
 map = Day9Shared.parse(input)
@@ -87,26 +87,86 @@ coord = {3, 2}
 ## Part 1
 
 ```elixir
-floor = Day9Shared.parse(input)
-ys = Day9Shared.length(map) - 1
-xs = Day9Shared.width(map) - 1
+defmodule Day9Part1Solution do
+  def solve(floor) do
+    floor
+    |> identify_lowest()
+    |> Enum.reduce(0, fn {y, x}, acc ->
+      height = Day9Shared.get(floor, {y, x})
+      acc + (height + 1)
+    end)
+  end
 
-0..ys
-|> Enum.map(fn y ->
-  0..xs
-  |> Enum.map(fn x ->
-    el = Day9Shared.get(floor, {y, x})
+  def identify_lowest(floor) do
+    ys = Day9Shared.length(floor) - 1
+    xs = Day9Shared.width(floor) - 1
 
-    lowest? =
-      floor
-      |> Day9Shared.neighbors({y, x})
-      |> Enum.min()
-      |> Kernel.>(el)
+    0..ys
+    |> Enum.map(fn y ->
+      0..xs
+      |> Enum.map(fn x ->
+        el = Day9Shared.get(floor, {y, x})
 
-    lowest? and el
-  end)
-end)
-|> List.flatten()
-|> Enum.reject(&(&1 == false))
-|> Enum.reduce(0, fn n, acc -> acc + (n + 1) end)
+        lowest? =
+          floor
+          |> Day9Shared.neighbors({y, x})
+          |> Enum.map(&Day9Shared.get(floor, &1))
+          |> Enum.min()
+          |> Kernel.>(el)
+
+        lowest? and {y, x}
+      end)
+    end)
+    |> List.flatten()
+    |> Enum.reject(&(&1 == false))
+  end
+end
+
+input
+|> Day9Shared.parse()
+|> Day9Part1Solution.solve()
+```
+
+## Part 2
+
+```elixir
+defmodule Day9Part2Solution do
+  def solve(floor) do
+    floor
+    |> Day9Part1Solution.identify_lowest()
+    |> identify_basins_sizes(floor)
+    # sort to take 3 biggest ones
+    |> Enum.sort()
+    |> Enum.reverse()
+    |> Enum.take(3)
+    # multiple their sizes
+    |> Enum.reduce(&(&1 * &2))
+  end
+
+  defp identify_basins_sizes(drains, floor) do
+    Enum.map(drains, fn start ->
+      visit(floor, [start], [])
+      |> Enum.count()
+    end)
+  end
+
+  # here we have an issue with sneaked non-unique coordinates
+  defp visit(_floor, [], visited),
+    do: visited |> Enum.uniq()
+
+  defp visit(floor, [next | tail], visited) do
+    neighbors =
+      Day9Shared.neighbors(floor, next)
+      |> Enum.reject(&(Day9Shared.get(floor, &1) == 9))
+      |> Enum.reject(fn coord -> Enum.any?(visited, &(&1 == coord)) end)
+
+    to_visit = (neighbors ++ tail) -- visited
+
+    visit(floor, to_visit, [next | visited])
+  end
+end
+
+input
+|> Day9Shared.parse()
+|> Day9Part2Solution.solve()
 ```
