@@ -76,3 +76,58 @@ end
 Day10Shared.parse(input)
 |> Day10Part1Solution.solve()
 ```
+
+## Part 2
+
+```elixir
+defmodule Day10Part2Solution do
+  @counterparts %{
+    "(" => ")",
+    "[" => "]",
+    "{" => "}",
+    "<" => ">"
+  }
+
+  @openers Map.keys(@counterparts)
+
+  @points %{
+    ")" => 1,
+    "]" => 2,
+    "}" => 3,
+    ">" => 4
+  }
+
+  def solve(input) do
+    points =
+      input
+      |> Enum.map(&balancer(&1, []))
+      |> Enum.reject(&(&1 == nil))
+      |> Enum.map(fn balancers ->
+        balancers
+        |> Enum.map(&@points[&1])
+        |> Enum.reduce(0, &(&2 * 5 + &1))
+      end)
+      |> Enum.sort()
+
+    Enum.at(points, div(length(points), 2))
+  end
+
+  defp balancer([], []),
+    do: nil
+
+  defp balancer([], balancers),
+    do: balancers
+
+  defp balancer([br | tail], stack) when br in @openers,
+    do: balancer(tail, [@counterparts[br] | stack])
+
+  defp balancer([br | tail], [br | t_stack]),
+    do: balancer(tail, t_stack)
+
+  defp balancer([_illegal_br | _], _balancers),
+    do: nil
+end
+
+Day10Shared.parse(input)
+|> Day10Part2Solution.solve()
+```
