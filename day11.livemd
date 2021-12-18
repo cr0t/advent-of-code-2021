@@ -1,0 +1,124 @@
+# Day 11
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+## Intro
+
+```elixir
+input = Kino.Input.textarea("Please paste your input:")
+```
+
+## Parsing/Shared
+
+```elixir
+defmodule Day11Shared do
+  def parse(input) do
+    lines =
+      input
+      |> Kino.Input.read()
+      |> String.split("\n", trim: true)
+
+    for {line, row} <- Enum.with_index(lines),
+        {number, col} <- Enum.with_index(String.codepoints(line)),
+        into: %{} do
+      octopus = {String.to_integer(number), 0, false}
+
+      {{row, col}, octopus}
+    end
+  end
+end
+```
+
+## Part 1
+
+```elixir
+defmodule Day11Part1Ssolution do
+  def solve(grid) do
+    1..100
+    |> Enum.reduce(grid, &step/2)
+    |> Enum.reduce(0, fn {_coord, {_, flashes, _}}, acc ->
+      acc + flashes
+    end)
+  end
+
+  defp step(_n, grid) do
+    grid
+    |> accumulate_energy()
+    |> release_energy()
+    |> reset_flashed()
+  end
+
+  defp accumulate_energy(grid),
+    do: Map.map(grid, fn {_, octopus} -> gain_energy(octopus) end)
+
+  defp release_energy(grid) do
+    grid
+    |> charged_octopuses()
+    |> Map.keys()
+    |> flash(grid)
+  end
+
+  defp reset_flashed(grid),
+    do: Map.map(grid, fn {_, {energy, flashes, _}} -> {energy, flashes, false} end)
+
+  defp gain_energy({energy, flashes, flashed}),
+    do: {energy + 1, flashes, flashed}
+
+  defp charged_octopuses(grid) do
+    Map.filter(grid, fn
+      {_, {energy, _flashes, false}} when energy > 9 -> true
+      _ -> false
+    end)
+  end
+
+  defp flash([], grid), do: grid
+
+  defp flash([coord | _tail], grid) do
+    if grid[coord] == nil or elem(grid[coord], 2) == true do
+      grid
+    else
+      grid = cascade_flash(grid, coord)
+
+      grid
+      |> charged_octopuses()
+      |> Map.keys()
+      |> flash(grid)
+    end
+  end
+
+  defp cascade_flash(grid, {x, y} = coord) do
+    {_, flashes, _} = grid[coord]
+
+    grid
+    |> Map.put(coord, {0, flashes + 1, true})
+    |> neighbor({x, y - 1})
+    |> neighbor({x + 1, y - 1})
+    |> neighbor({x + 1, y})
+    |> neighbor({x + 1, y + 1})
+    |> neighbor({x, y + 1})
+    |> neighbor({x - 1, y + 1})
+    |> neighbor({x - 1, y})
+    |> neighbor({x - 1, y - 1})
+  end
+
+  defp neighbor(grid, coord) do
+    octopus = grid[coord]
+
+    if octopus == nil or elem(octopus, 2) == true do
+      grid
+    else
+      Map.put(grid, coord, gain_energy(octopus))
+    end
+  end
+end
+
+input
+|> Day11Shared.parse()
+|> Day11Part1Ssolution.solve()
+```
