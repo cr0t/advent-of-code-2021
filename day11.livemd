@@ -32,22 +32,8 @@ defmodule Day11Shared do
       {{row, col}, octopus}
     end
   end
-end
-```
 
-## Part 1
-
-```elixir
-defmodule Day11Part1Ssolution do
-  def solve(grid) do
-    1..100
-    |> Enum.reduce(grid, &step/2)
-    |> Enum.reduce(0, fn {_coord, {_, flashes, _}}, acc ->
-      acc + flashes
-    end)
-  end
-
-  defp step(_n, grid) do
+  def step(_n, grid) do
     grid
     |> accumulate_energy()
     |> release_energy()
@@ -117,8 +103,54 @@ defmodule Day11Part1Ssolution do
     end
   end
 end
+```
+
+## Part 1
+
+```elixir
+defmodule Day11Part1Ssolution do
+  def solve(grid) do
+    1..100
+    |> Enum.reduce(grid, &Day11Shared.step/2)
+    |> Enum.reduce(0, fn {_coord, {_, flashes, _}}, acc ->
+      acc + flashes
+    end)
+  end
+end
 
 input
 |> Day11Shared.parse()
 |> Day11Part1Ssolution.solve()
+```
+
+## Part 2
+
+```elixir
+defmodule Day11Part2Ssolution do
+  def solve(grid),
+    do: step_until_sync(grid, 0)
+
+  defp step_until_sync(grid, n) do
+    if sync_flash?(grid) do
+      n
+    else
+      Day11Shared.step(n, grid)
+      |> step_until_sync(n + 1)
+    end
+  end
+
+  defp sync_flash?(grid) do
+    octopuses_n = length(Map.keys(grid))
+
+    Enum.reduce(grid, 0, fn
+      {_, {0, _, _}}, acc -> acc + 1
+      _, acc -> acc
+    end)
+    |> Kernel.==(octopuses_n)
+  end
+end
+
+input
+|> Day11Shared.parse()
+|> Day11Part2Ssolution.solve()
 ```
