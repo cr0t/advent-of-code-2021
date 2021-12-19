@@ -1,0 +1,82 @@
+# Day 12
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+## Intro
+
+```elixir
+input = Kino.Input.textarea("Please paste your input:")
+```
+
+## Parsing/Shared
+
+```elixir
+defmodule Day12Shared do
+  def parse(input) do
+    input
+    |> Kino.Input.read()
+    |> String.split(["\n"], trim: true)
+    |> Enum.map(fn line ->
+      [a, b] = String.split(line, "-")
+      {a, b}
+    end)
+    |> simple_graph()
+  end
+
+  defp simple_graph(edges) do
+    edges
+    |> Enum.reduce(%{}, fn {a, b}, graph ->
+      Map.update(graph, a, [b], fn children -> [b | children] end)
+      |> Map.update(b, [a], fn children -> [a | children] end)
+    end)
+  end
+end
+
+# Day12Shared.parse(input)
+```
+
+## Part 1
+
+```elixir
+defmodule Day12Part1Solution do
+  def solve(graph) do
+    graph
+    |> walk("start", [])
+    # |> IO.inspect()
+    # ^^^
+    # Check this output: I don't like the deep List of Lists I've got here, but non-empty
+    # ones that inside it are the actual paths `walk/3` found...
+    # But then I have to flatten them all and dig up by "end" elements to count:
+    |> List.flatten()
+    |> Enum.reduce({[], []}, fn
+      "end", {all_paths, path} -> {[["end" | path] | all_paths], []}
+      el, {all_paths, path} -> {all_paths, [el | path]}
+    end)
+    |> elem(0)
+    |> Enum.count()
+  end
+
+  defp walk(_, "end", path), do: ["end" | path] |> Enum.reverse()
+
+  defp walk(graph, node, path) do
+    # IO.inspect({path, node, graph[node]}, label: "walk")
+
+    for next <- graph[node], not visited?(next, path) do
+      walk(graph, next, [node | path])
+    end
+  end
+
+  defp visited?(node, path), do: small?(node) and node in path
+  defp small?(node), do: node == String.downcase(node)
+end
+
+input
+|> Day12Shared.parse()
+|> Day12Part1Solution.solve()
+```
