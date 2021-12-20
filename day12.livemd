@@ -22,23 +22,19 @@ defmodule Day12Shared do
     input
     |> Kino.Input.read()
     |> String.split(["\n"], trim: true)
-    |> Enum.map(fn line ->
-      [a, b] = String.split(line, "-")
-      {a, b}
-    end)
+    |> Enum.map(&String.split(&1, "-"))
     |> simple_graph()
   end
 
-  defp simple_graph(edges) do
-    edges
-    |> Enum.reduce(%{}, fn {a, b}, graph ->
-      Map.update(graph, a, [b], fn children -> [b | children] end)
-      |> Map.update(b, [a], fn children -> [a | children] end)
+  defp simple_graph(connections) do
+    connections
+    |> Enum.reduce(%{}, fn [a, b], graph ->
+      graph
+      |> Map.update(a, [b], &[b | &1])
+      |> Map.update(b, [a], &[a | &1])
     end)
   end
 end
-
-# Day12Shared.parse(input)
 ```
 
 ## Part 1
@@ -79,4 +75,47 @@ end
 input
 |> Day12Shared.parse()
 |> Day12Part1Solution.solve()
+```
+
+## Part 2
+
+```elixir
+defmodule Day12Part2Solution do
+  def solve(graph) do
+    graph
+    |> walk(graph["start"], MapSet.new(), false, ["start"], [])
+    |> Enum.count()
+  end
+
+  defp walk(graph, ["end" | caves], visited, once?, path, paths) do
+    walk(graph, caves, visited, once?, path, [["end" | path] | paths])
+  end
+
+  defp walk(graph, [cave | caves], visited, once?, path, paths) do
+    paths =
+      cond do
+        cave == "start" or (cave in visited and once?) ->
+          paths
+
+        cave in visited ->
+          walk(graph, graph[cave], MapSet.put(visited, cave), true, [cave | path], paths)
+
+        small?(cave) ->
+          walk(graph, graph[cave], MapSet.put(visited, cave), once?, [cave | path], paths)
+
+        true ->
+          walk(graph, graph[cave], visited, once?, [cave | path], paths)
+      end
+
+    walk(graph, caves, visited, once?, path, paths)
+  end
+
+  defp walk(_graph, [], _visited, _once?, _path, paths), do: paths
+
+  defp small?(cave), do: cave == String.downcase(cave)
+end
+
+input
+|> Day12Shared.parse()
+|> Day12Part2Solution.solve()
 ```
