@@ -1,0 +1,80 @@
+# Day 13
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+## Intro
+
+```elixir
+input = Kino.Input.textarea("Please paste your input:")
+```
+
+## Parsing/Shared
+
+```elixir
+defmodule Day13Shared do
+  def parse(input) do
+    [coords, instructions] =
+      input
+      |> Kino.Input.read()
+      |> String.split("\n\n", trim: true)
+
+    dots =
+      coords
+      |> String.split(["\n", ","], trim: true)
+      |> Enum.map(&String.to_integer/1)
+      |> Enum.chunk_every(2)
+      |> Enum.map(&List.to_tuple/1)
+
+    folds =
+      instructions
+      |> String.split(["\n", "="], trim: true)
+      |> Enum.map(&String.replace(&1, "fold along ", ""))
+      |> Enum.chunk_every(2)
+      |> Enum.map(fn [coord, value] -> {String.to_atom(coord), String.to_integer(value)} end)
+
+    {dots, folds}
+  end
+
+  def fold(dots, :y, limit) do
+    dots
+    |> Enum.map(fn {x, y} -> {x, limit - abs(y - limit)} end)
+    |> Enum.uniq()
+  end
+
+  def fold(dots, :x, limit) do
+    dots
+    |> Enum.map(fn {x, y} -> {limit - abs(x - limit), y} end)
+    |> Enum.uniq()
+  end
+end
+
+# Day13Shared.parse(input)
+# |> elem(0)
+# |> Day13Shared.fold(:y, 7)
+# |> Day13Shared.fold(:x, 5)
+# |> Enum.count()
+```
+
+## Part 1
+
+```elixir
+defmodule Day13Part1Solution do
+  def solve({dots, folds}) do
+    {fold_type, limit} = hd(folds)
+
+    dots
+    |> Day13Shared.fold(fold_type, limit)
+    |> Enum.count()
+  end
+end
+
+input
+|> Day13Shared.parse()
+|> Day13Part1Solution.solve()
+```
