@@ -52,6 +52,25 @@ defmodule Day13Shared do
     |> Enum.map(fn {x, y} -> {limit - abs(x - limit), y} end)
     |> Enum.uniq()
   end
+
+  def print(dots) do
+    height = dots |> Enum.map(&elem(&1, 1)) |> Enum.max()
+    width = dots |> Enum.map(&elem(&1, 0)) |> Enum.max()
+
+    picture =
+      Enum.map(0..height, fn y ->
+        Enum.map(0..width, fn x ->
+          if Enum.member?(dots, {x, y}), do: "#", else: "."
+        end)
+        |> Enum.join()
+      end)
+      |> Enum.join("\n")
+
+    IO.puts(picture)
+    IO.puts("\n***************\n")
+
+    dots
+  end
 end
 
 # Day13Shared.parse(input)
@@ -77,4 +96,22 @@ end
 input
 |> Day13Shared.parse()
 |> Day13Part1Solution.solve()
+```
+
+## Part 2
+
+```elixir
+defmodule Day13Part2Solution do
+  def solve({dots, folds}) do
+    folds
+    |> Enum.reduce(dots, fn {fold_type, limit}, acc ->
+      Day13Shared.fold(acc, fold_type, limit)
+    end)
+    |> Day13Shared.print()
+  end
+end
+
+input
+|> Day13Shared.parse()
+|> Day13Part2Solution.solve()
 ```
