@@ -1,0 +1,83 @@
+# Day 14
+
+## Setup
+
+```elixir
+Mix.install([
+  {:kino, "~> 0.4.1"}
+])
+```
+
+## Intro
+
+```elixir
+input = Kino.Input.textarea("Please paste your input:")
+```
+
+## Parsing/Shared
+
+```elixir
+defmodule Day14Shared do
+  def parse(input) do
+    [t_text, r_text] = String.split(input, "\n\n", trim: true)
+
+    template = String.split(t_text, "", trim: true)
+
+    rules =
+      r_text
+      |> String.split(["\n", " -> "])
+      |> Enum.chunk_every(2)
+      |> Enum.into(%{}, fn [k, v] -> {k, v} end)
+
+    {template, rules}
+  end
+
+  def step(template, rules) do
+    template
+    |> Enum.chunk_every(2, 1, :discard)
+    |> Enum.map(fn [first, second] = elements ->
+      pair = Enum.join(elements)
+      [first, rules[pair], second]
+    end)
+    |> List.foldr([], fn
+      [a, b, s], [[s | _] | _] = acc -> [[a, b] | acc]
+      el, acc -> [el | acc]
+    end)
+    |> List.flatten()
+  end
+end
+
+# {template, rules} = input
+# |> Kino.Input.read()
+# |> Day14Shared.parse()
+
+# Day14Shared.step(template, rules)
+# |> Day14Shared.step(rules)
+```
+
+## Part 1
+
+```elixir
+defmodule Day14Part1Solution do
+  def solve({template, rules}) do
+    polymer =
+      1..10
+      |> Enum.reduce(template, fn _n, acc ->
+        Day14Shared.step(acc, rules)
+      end)
+
+    occurences =
+      polymer
+      |> Enum.frequencies()
+      |> Map.values()
+      |> Enum.sort(:desc)
+
+    hd(occurences) - List.last(occurences)
+  end
+end
+
+input
+|> Kino.Input.read()
+|> Day14Shared.parse()
+|> Day14Part1Solution.solve()
+```
